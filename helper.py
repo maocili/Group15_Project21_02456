@@ -46,7 +46,11 @@ def get_error_info(pred, gt):
     return viz_map, error_rate
 
 
+<<<<<<< HEAD
 def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device, save_path="dual_loader_comparison.png", samples_per_loader=4):
+=======
+def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device, save_path="dual_loader_comparison.png", samples_per_loader=3):
+>>>>>>> f59d2a4 (update models  (#2))
     model_A.eval()
     model_B.eval()
 
@@ -61,8 +65,11 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
     imgs_A, masks_A = batch_A
     imgs_B, masks_B = batch_B
 
+<<<<<<< HEAD
     print(imgs_A[0].shape)
 
+=======
+>>>>>>> f59d2a4 (update models  (#2))
     imgs_A = imgs_A[:samples_per_loader].to(device)
     masks_A = masks_A[:samples_per_loader].to(device)
     imgs_B = imgs_B[:samples_per_loader].to(device)
@@ -121,7 +128,11 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
         axes[i, 2].axis('off')
 
         axes[i, 3].imshow(err_map_A, cmap=cmap_err, norm=norm_err, interpolation='nearest')
+<<<<<<< HEAD
         axes[i, 3].set_title(f"Model A Error\nRate: {err_rate_A:.4f} \n Red = FN, Blue = FP", fontsize=10)
+=======
+        axes[i, 3].set_title(f"Model A Error\nRate: {err_rate_A:.4f} \n Red=FN, Blue = FP", fontsize=10)
+>>>>>>> f59d2a4 (update models  (#2))
         axes[i, 3].axis('off')
 
         axes[i, 4].imshow(pred_B, cmap='gray')

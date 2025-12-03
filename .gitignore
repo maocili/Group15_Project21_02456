@@ -209,4 +209,4 @@ __marimo__/
 
 *.pth
 *.tif
-*.png
+data/*

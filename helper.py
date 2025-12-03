@@ -27,7 +27,6 @@ def download_model(url, dest_folder="models"):
 
 
 def calculate_iou(pred, target):
-    """ 计算二分类 IoU """
     intersection = np.logical_and(pred, target).sum()
     union = np.logical_or(pred, target).sum()
     if union == 0:
@@ -36,37 +35,21 @@ def calculate_iou(pred, target):
 
 
 def get_error_info(pred, gt):
-    """
-    生成三色误差图数据和错误率
-    Returns:
-        viz_map: 0=正确(白), 1=漏标(红), 2=误标(蓝)
-        error_rate: 错误像素占比 (0~1)
-    """
-    # 初始化可视化图 (全0, 默认为正确)
     viz_map = np.zeros_like(gt, dtype=np.uint8)
 
-    # 1. 漏标 (False Negative): GT是1, 预测是0 -> 设为 1 (红色)
     viz_map[(gt == 1) & (pred == 0)] = 1
 
-    # 2. 误标 (False Positive): GT是0, 预测是1 -> 设为 2 (蓝色)
     viz_map[(gt == 0) & (pred == 1)] = 2
 
-    # 计算错误率 (所有不正确的像素占比)
     error_rate = np.mean(gt != pred)
 
     return viz_map, error_rate
 
 
 def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device, save_path="dual_loader_comparison.png", samples_per_loader=3):
-    """
-    Visualizes predictions from two models on data from two different loaders.
-    Top rows: Data from Loader A
-    Bottom rows: Data from Loader B
-    """
     model_A.eval()
     model_B.eval()
 
-    # --- A. Get Batches from Both Loaders ---
     try:
         # Get one batch from each loader
         batch_A = next(iter(loader_A))
@@ -75,18 +58,14 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
         print("One of the loaders is empty!")
         return
 
-    # Unpack images and masks
     imgs_A, masks_A = batch_A
     imgs_B, masks_B = batch_B
 
-    # Limit the number of samples to keep the image size manageable
-    # (Select the first 'samples_per_loader' images from each)
     imgs_A = imgs_A[:samples_per_loader].to(device)
     masks_A = masks_A[:samples_per_loader].to(device)
     imgs_B = imgs_B[:samples_per_loader].to(device)
     masks_B = masks_B[:samples_per_loader].to(device)
 
-    # --- B. Inference (Run both models on ALL images) ---
     with torch.no_grad():
         print(imgs_A.shape, imgs_B.shape)
         out_A = model_A(imgs_A)
@@ -95,7 +74,6 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
         out_B = model_B(imgs_B)
         preds_B = torch.argmax(out_B, dim=1)
 
-    # --- C. Convert to Numpy ---
     imgs_A_np = imgs_A.cpu().numpy()
     imgs_B_np = imgs_B.cpu().numpy()
     masks_np = masks_A.cpu().numpy()
@@ -105,12 +83,10 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
     batch_size = len(imgs_A)
     print(f"Visualizing combined batch size: {batch_size} ({len(imgs_A)} from A, {len(imgs_B)} from B)")
 
-    # --- D. Plot Configuration ---
-    fig, axes = plt.subplots(batch_size, 7, figsize=(24, batch_size * 4.5))
+    fig, axes = plt.subplots(batch_size, 6, figsize=(24, batch_size * 4.5))
     if batch_size == 1:
         axes = np.expand_dims(axes, axis=0)
 
-    # Colormap: White=Correct, Red=Miss (FN), Blue=Extra (FP)
     cmap_err = mcolors.ListedColormap(['white', 'red', 'blue'])
     norm_err = mcolors.Normalize(vmin=0, vmax=2)
 
@@ -121,45 +97,38 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
         pred_A = preds_A_np[i]
         pred_B = preds_B_np[i]
 
-        # Calculate Metrics
         iou_A = calculate_iou(pred_A, gt_show)
         iou_B = calculate_iou(pred_B, gt_show)
         err_map_A, err_rate_A = get_error_info(pred_A, gt_show)
         err_map_B, err_rate_B = get_error_info(pred_B, gt_show)
 
-        # 1. Original Image (with Source Label)
         axes[i, 0].imshow(img_A_show, cmap='gray')
         axes[i, 0].set_title(f"Original A", fontsize=10, fontweight='bold')
         axes[i, 0].axis('off')
 
-        axes[i, 1].imshow(img_B_show, cmap='gray')
-        axes[i, 1].set_title(f"Original B", fontsize=10, fontweight='bold')
+        # axes[i, 1].imshow(img_B_show, cmap='gray')
+        # axes[i, 1].set_title(f"Original B", fontsize=10, fontweight='bold')
+        # axes[i, 1].axis('off')
+
+        axes[i, 1].imshow(gt_show, cmap='gray')
+        axes[i, 1].set_title("Ground Truth", fontsize=10)
         axes[i, 1].axis('off')
 
-        # 2. Ground Truth
-        axes[i, 2].imshow(gt_show, cmap='gray')
-        axes[i, 2].set_title("Ground Truth", fontsize=10)
+        axes[i, 2].imshow(pred_A, cmap='gray')
+        axes[i, 2].set_title(f"Model A\nIoU: {iou_A:.4f}", fontsize=10)
         axes[i, 2].axis('off')
 
-        # 3. Model A Pred
-        axes[i, 3].imshow(pred_A, cmap='gray')
-        axes[i, 3].set_title(f"Model A\nIoU: {iou_A:.4f}", fontsize=10)
+        axes[i, 3].imshow(err_map_A, cmap=cmap_err, norm=norm_err, interpolation='nearest')
+        axes[i, 3].set_title(f"Model A Error\nRate: {err_rate_A:.4f} \n Red=FN, Blue = FP", fontsize=10)
         axes[i, 3].axis('off')
 
-        # 4. Model A Error
-        axes[i, 4].imshow(err_map_A, cmap=cmap_err, norm=norm_err, interpolation='nearest')
-        axes[i, 4].set_title(f"Model A Error\nRate: {err_rate_A:.4f} \n Red=FN, Blue = FP", fontsize=10)
+        axes[i, 4].imshow(pred_B, cmap='gray')
+        axes[i, 4].set_title(f"Model B\nIoU: {iou_B:.4f}", fontsize=10)
         axes[i, 4].axis('off')
 
-        # 5. Model B Pred
-        axes[i, 5].imshow(pred_B, cmap='gray')
-        axes[i, 5].set_title(f"Model B\nIoU: {iou_B:.4f}", fontsize=10)
+        axes[i, 5].imshow(err_map_B, cmap=cmap_err, norm=norm_err, interpolation='nearest')
+        axes[i, 5].set_title(f"Model B Error\nRate: {err_rate_B:.4f} \n Red=FN, Blue = FP", fontsize=10)
         axes[i, 5].axis('off')
-
-        # 6. Model B Error
-        axes[i, 6].imshow(err_map_B, cmap=cmap_err, norm=norm_err, interpolation='nearest')
-        axes[i, 6].set_title(f"Model B Error\nRate: {err_rate_B:.4f} \n Red=FN, Blue = FP", fontsize=10)
-        axes[i, 6].axis('off')
 
     plt.tight_layout()
     plt.savefig(save_path)

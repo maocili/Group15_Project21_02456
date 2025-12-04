@@ -139,7 +139,6 @@ def visualize_comparison_validation(loader_A, loader_B, model_A, model_B, device
 def visualize_single_model_3color(loader, model, device, save_path="single_model_result.png"):
     model.eval()
 
-    # --- A. Get Batch ---
     try:
         batch = next(iter(loader))
     except StopIteration:
@@ -150,13 +149,10 @@ def visualize_single_model_3color(loader, model, device, save_path="single_model
     images = images.to(device)
     masks = masks.to(device)
 
-    # --- B. Inference (Single Model) ---
     with torch.no_grad():
         output = model(images)
-        # Assuming output shape is [Batch, Classes, H, W], we take argmax
         preds = torch.argmax(output, dim=1)
 
-    # --- C. Convert to Numpy ---
     images_np = images.cpu().numpy()
     masks_np = masks.cpu().numpy()
     preds_np = preds.cpu().numpy()
@@ -164,15 +160,10 @@ def visualize_single_model_3color(loader, model, device, save_path="single_model
     batch_size = len(images_np)
     print(f"Visualizing batch of size: {batch_size}")
 
-    # --- D. Plot Configuration ---
-    # Changed from 6 columns to 4 columns
     fig, axes = plt.subplots(batch_size, 4, figsize=(16, batch_size * 4.5))
-
-    # Handle the case where batch_size is 1 (axes is not a 2D array by default)
     if batch_size == 1:
         axes = np.expand_dims(axes, axis=0)
 
-    # Define 3-Color Colormap: [0:White (Correct), 1:Red (Miss), 2:Blue (Extra)]
     cmap_err = mcolors.ListedColormap(['white', 'red', 'blue'])
     norm_err = mcolors.Normalize(vmin=0, vmax=2)
 
@@ -181,26 +172,21 @@ def visualize_single_model_3color(loader, model, device, save_path="single_model
         gt_show = np.squeeze(masks_np[i])
         pred_show = preds_np[i]
 
-        # Calculate metrics (Assumes calculate_iou and get_error_info exist)
         iou = calculate_iou(pred_show, gt_show)
         err_map, err_rate = get_error_info(pred_show, gt_show)
 
-        # 1. Original Image
         axes[i, 0].imshow(img_show, cmap='gray')
         axes[i, 0].set_title("(Original)", fontsize=10)
         axes[i, 0].axis('off')
 
-        # 2. Ground Truth
         axes[i, 1].imshow(gt_show, cmap='gray')
         axes[i, 1].set_title("(Ground Truth)", fontsize=10)
         axes[i, 1].axis('off')
 
-        # 3. Prediction
         axes[i, 2].imshow(pred_show, cmap='gray')
         axes[i, 2].set_title(f"Prediction\nIoU: {iou:.4f}", fontsize=10)
         axes[i, 2].axis('off')
 
-        # 4. Error Map (3-Color)
         axes[i, 3].imshow(err_map, cmap=cmap_err, norm=norm_err, interpolation='nearest')
         axes[i, 3].set_title(f"Error Map\nRate: {err_rate:.4f}\n(Red=Miss, Blue=Extra)", fontsize=10)
         axes[i, 3].axis('off')

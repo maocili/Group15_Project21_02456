@@ -103,12 +103,9 @@ def compare_segmentation_methods(src_folder, image_names, strict_factor=0.7):
             # fixed_mask = np.zeros_like(img_uint8, dtype=np.uint8)
             # fixed_mask[img_uint8 > 250] = 1  
             # fixed_mask[img_uint8 < 3] = 0    
-            # 方法 1: 逻辑与
             fixed_mask = ((img_uint8 >= 3) & (img_uint8 <= 250)).astype(np.uint8)
 
-            # 方法 2: OpenCV inRange
             fixed_mask = cv2.inRange(img_uint8, 3, 250)
-            # 注意: inRange 输出是 0 和 255，如果你需要 0 和 1，需要除以 255
             fixed_mask = (255-fixed_mask) // 255
             
             # method 2: Otsu algorithem
@@ -164,8 +161,8 @@ def compare_segmentation_methods(src_folder, image_names, strict_factor=0.7):
 
 if __name__ == "__main__":
 
-    input_dir = "F:/DTU/02456 Deep Learning/Project/Data/Original Masks"
-    output_dir = "F:/DTU/02456 Deep Learning/Project/Data/Masks"
+    input_dir = "data/Original Masks"
+    output_dir = "data/Masks"
 
     special_files_list = ["image_v2_mask_00.tif"]
     '''
